@@ -1,0 +1,401 @@
+/**
+ * JJTree template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */
+options
+{
+  static = false;
+}
+
+PARSER_BEGIN(Parser)
+package cn.nwafulive.zq.parser;
+import cn.nwafulive.zq.util.*;
+
+public class Parser
+{
+  public QTTable qtTable = new QTTable();
+
+  public ConditionValue cv = new ConditionValue();
+}
+
+PARSER_END(Parser)
+
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| < "//" (~[ "\n", "\r" ])*
+    (
+      "\n"
+    | "\r"
+    | "\r\n"
+    ) >
+| < "/*" (~[ "*" ])* "*"
+    (
+      ~[ "/" ] (~[ "*" ])* "*"
+    )*
+    "/" >
+}
+
+TOKEN :	 // KEYWORD
+{
+  < IF : "if" >
+| < ELSE : "else" >
+| < INT : "int" >
+| < RETURN : "return" >
+| < VOID : "void" >
+| < WHILE : "while" >
+| < MAIN : "main" >
+}
+
+TOKEN : /*定义符号*/
+{
+  < UNDERSCORE : "_" >
+| < COMMA : "," >
+| < SEMICOLON : ";" >
+| < COLON : ":" >
+| < LEFTPARENTHESES : "(" >
+| < RIGHTPARENTHESES : ")" >
+| < EQUAL : "=" >
+}
+
+TOKEN : /* OPERATORS */
+{
+  < PLUS : "+" >
+| < MINUS : "-" >
+| < MULTIPLY : "*" >
+| < DIVIDE : "/" >
+}
+
+TOKEN : // 定义 大 中 括号
+{
+  < LB : "{" >
+| < RB : "}" >
+| < LM : "[" >
+| < RM : "]" >
+}
+
+TOKEN :	 //关系符
+{
+  < LESS : "<" >
+| < GREATER : ">" >
+| < EQUALTO : "==" >
+| < EQUALGREATER : ">=" >
+| < EQUALLESS : "<=" >
+}
+
+TOKEN : /* LITERALS */
+{
+  < INTEGER_LITERAL :
+    < DECIMAL_LITERAL > ([ "l", "L" ])?
+  | < HEX_LITERAL > ([ "l", "L" ])?
+  | < OCTAL_LITERAL > ([ "l", "L" ])? 
+  >
+| < #DECIMAL_LITERAL : [ "1"-"9" ] ([ "0"-"9" ])* >
+| < #HEX_LITERAL : "0" [ "x", "X" ] ([ "0"-"9", "a"-"f", "A"-"F" ])+ >
+| < #OCTAL_LITERAL : "0" ([ "0"-"7" ])* >
+}
+
+TOKEN : /* IDENTIFIERS */
+{
+  < IDENTIFIER :
+    < LETTER >
+    (
+      < LETTER >
+    | < DIGIT >
+    )* >
+| < #LETTER : [ "_", "a"-"z", "A"-"Z" ] >
+| < #DIGIT : [ "0"-"9" ] >
+}
+
+SimpleNode Start() :
+{}
+{
+  //Expression() ";"
+  Procedure() < EOF >
+  {
+    return jjtThis;
+  }
+}
+
+void Procedure() :
+{}
+{
+  < INT > < MAIN > < LEFTPARENTHESES > < RIGHTPARENTHESES > < LB >
+  (
+    StatementBlock()
+  )*
+  < RB >
+}
+
+void StatementBlock() :
+{}
+{
+  Statement()
+|
+  (
+    < LB >
+    (
+      StatementBlock()
+    )*
+    < RB >
+  )
+}
+
+void Statement() :
+{}
+{
+  SequentialStatement()
+| 
+  ConditionalStatement()
+| 
+  LoopStatement()
+}
+
+void SequentialStatement() :
+{}
+{
+  [
+    VariableDeclare()
+  | 
+    AssignmentStatement()
+  ]
+  < SEMICOLON >
+}
+
+String AssignmentStatement() : //赋值语句
+{
+  String first;
+  //String middle=null;
+  String newTemp;
+  String result;
+  Token op;
+}
+{
+  result = Identifier() 
+  op = < EQUAL > 
+  first = Expression()
+  {
+    newTemp = VariableNameGenerator.genVariableName();
+    QTInfo qt = new QTInfo(op.image, first, "_", result);
+    qtTable.addQTInfo(qt);
+    return newTemp;
+  }
+}
+
+void ConditionalStatement() :
+{
+  //int quad;
+  //QTInfo qt=null;
+  Token t = null;
+}
+{
+  < IF >
+  cv = Condition()
+  
+	//确定E的真出口
+  {
+    //System.out.println("啊啊啊啊"+QTInfo.innerIdSeqen);
+    cv.backpatchTrueChain(QTInfo.innerIdSeqen+1);
+    //System.out.println("啊啊啊啊"+QTInfo.innerIdSeqen);  
+  }
+  StatementBlock()
+  
+  (
+    LOOKAHEAD(1)
+    t = < ELSE >
+	//若遇到else，先生成一个无条件转移四元式("J","_","_","0")，该四元式的result字段在翻译完S2也不一定能确定下来,需要等待回填
+	{
+    QTInfo qt=new QTInfo("J","_","_","0");
+    qtTable.addQTInfo(qt);
+  	}
+  	
+	//E的假出口
+    {
+      cv.backpatchFalseChain(QTInfo.innerIdSeqen+1);
+    }
+    StatementBlock()
+  )?
+  {
+    if (t == null)
+    {
+      cv.backpatchFalseChain(QTInfo.innerIdSeqen+1);
+    }
+  }
+ 
+}
+
+ConditionValue Condition() : //条件
+{
+  //  int quad;
+  Token r;
+  String first;
+  String middle;
+}
+{
+  < LEFTPARENTHESES > 
+  first = Expression() r = RelationSymbol() middle = Expression() 
+  < RIGHTPARENTHESES >
+  {
+    QTInfo qt = new QTInfo("J" + r.image, first, middle, "");
+    QTInfo qtFalse = new QTInfo("J", "_", "_", "");
+    qtTable.addQTInfo(qt);
+    qtTable.addQTInfo(qtFalse);
+    cv.mergeTrue(qt);
+    cv.mergeFalse(qtFalse);
+    return cv;
+  }
+}
+
+Token RelationSymbol() : //关系符
+{
+  Token r = null;
+}
+{
+  [
+    r = < LESS >
+  | r = < GREATER >
+  | r = < EQUALTO >
+  | r = < EQUALGREATER >
+  | r = < EQUALLESS >
+  ]
+  {
+    return r;
+  }
+}
+
+void Operator() :	 //运算符
+{}
+{
+  < PLUS >
+| < MINUS >
+| < MULTIPLY >
+| < DIVIDE >
+}
+
+void LoopStatement() :
+{}
+{
+  < WHILE > Condition() StatementBlock()
+}
+
+void VariableDeclare() : //变量声明语句
+{}
+{
+  (
+    < INT > Identifier()
+    (
+      < COMMA > Identifier()
+    )*
+  )
+}
+
+String Expression() :
+{
+  String str;
+}
+{
+  str = AdditiveExpression()
+  {
+    return str;
+  }
+}
+
+String AdditiveExpression() :
+{
+  String first;
+  String middle;
+  String newTemp;
+  Token op;
+}
+{
+  first = MultiplicativeExpression()
+  {
+    newTemp = first;
+  }
+  (
+    (
+      op = "+"
+    | op = "-"
+    )
+    middle = MultiplicativeExpression()
+    {
+      //QTTable qtTable=new QTTable();
+      newTemp = VariableNameGenerator.genVariableName();
+      QTInfo qt = new QTInfo(op.image, first, middle, newTemp);
+      qtTable.addQTInfo(qt);
+    }
+  )*
+  {
+    return newTemp;
+  }
+}
+
+String MultiplicativeExpression() :
+{
+  String first;
+  String middle;
+  String newTemp;
+  Token op;
+}
+{
+  first = UnaryExpression()
+  {
+    newTemp = first;
+  }
+  (
+    (
+      op = "*"
+    | op = "/"
+    | op = "%"
+    )
+    middle = UnaryExpression()
+    {
+      //VariableNameGenerator variableNameGenerator = new VariableNameGenerator();
+      newTemp = VariableNameGenerator.genVariableName();
+      QTInfo qt = new QTInfo(op.image, first, middle, newTemp);
+      qtTable.addQTInfo(qt);
+    }
+  )*
+  {
+    return newTemp;
+  }
+}
+
+String UnaryExpression() :
+{
+  String str = null;
+}
+{
+  [
+    "(" str = Expression() ")"
+  | str = Identifier()
+  | str = Integer()
+  ]
+  {
+    return str;
+  }
+}
+
+String Identifier() :
+{
+  Token t;
+}
+{
+  t = < IDENTIFIER >
+  {
+    return t.image;
+  }
+}
+
+String Integer() :
+{
+  Token t;
+}
+{
+  t = < INTEGER_LITERAL >
+  {
+    return t.image;
+  }
+}
