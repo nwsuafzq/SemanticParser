@@ -5,8 +5,6 @@ import cn.nwafulive.zq.util.*;
 public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConstants {/*@bgen(jjtree)*/
   protected JJTParserState jjtree = new JJTParserState();public QTTable qtTable = new QTTable();
 
-  public ConditionValue cv = new ConditionValue();
-
   final public SimpleNode Start() throws ParseException {
  /*@bgen(jjtree) Start */
   SimpleNode jjtn000 = new SimpleNode(JJTSTART);
@@ -291,6 +289,7 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
   jjtree.openNodeScope(jjtn000);int quad = 0;
   //QTInfo qt=null;
   Token t = null;
+  ConditionValue cv = new ConditionValue();
     try {
       jj_consume_token(IF);
       cv = Condition();
@@ -305,7 +304,8 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
       QTInfo qtqiangzhi = new QTInfo("J", "_", "_", "0");
       qtTable.addQTInfo(qtqiangzhi);
       quad = QTInfo.innerIdSeqen;        //记录它的四元式序号
-      System.out.println(quad + "---");
+      //      System.out.println(quad + "---");
+
       cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
         StatementBlock();
         break;
@@ -353,6 +353,7 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
   Token r;
   String first;
   String middle;
+  ConditionValue cv = new ConditionValue();
     try {
       jj_consume_token(LEFTPARENTHESES);
       first = Expression();
@@ -361,7 +362,7 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
       jj_consume_token(RIGHTPARENTHESES);
     jjtree.closeNodeScope(jjtn000, true);
     jjtc000 = false;
-    QTInfo qt = new QTInfo("J" + r.image, first, middle, "");
+    QTInfo qt = new QTInfo("J" + r.image, first, middle, "");   //等待回填
     QTInfo qtFalse = new QTInfo("J", "_", "_", "");
     qtTable.addQTInfo(qt);
     qtTable.addQTInfo(qtFalse);
@@ -474,11 +475,20 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
  /*@bgen(jjtree) LoopStatement */
   SimpleNode jjtn000 = new SimpleNode(JJTLOOPSTATEMENT);
   boolean jjtc000 = true;
-  jjtree.openNodeScope(jjtn000);
+  jjtree.openNodeScope(jjtn000);int quad;
+  ConditionValue cv = new ConditionValue();
     try {
       jj_consume_token(WHILE);
-      Condition();
+    quad = QTInfo.innerIdSeqen + 1;      //条件语句四元式起始序号
+
+      cv = Condition();
+    cv.backpatchTrueChain(QTInfo.innerIdSeqen + 1);      // 回填cValue真链
+
       StatementBlock();
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+    qtTable.addQTInfo(new QTInfo("J", "_", "_", quad));
+    cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
     } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -980,4 +990,6 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
   final public void disable_tracing() {
   }
 
+  //public ConditionValue cv = new ConditionValue();
+  //不能是全局
 }

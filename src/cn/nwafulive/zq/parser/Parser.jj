@@ -18,7 +18,8 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants/*@egen*/
 /*@egen*/
   public QTTable qtTable = new QTTable();
 
-  public ConditionValue cv = new ConditionValue();
+  //public ConditionValue cv = new ConditionValue();
+  //\u4e0d\u80fd\u662f\u5168\u5c40
 }
 
 PARSER_END(Parser)
@@ -363,6 +364,7 @@ void ConditionalStatement() :
   int quad = 0;
   //QTInfo qt=null;
   Token t = null;
+  ConditionValue cv = new ConditionValue();
 }
 {/*@bgen(jjtree) ConditionalStatement */
   try {
@@ -384,7 +386,7 @@ void ConditionalStatement() :
       QTInfo qtqiangzhi = new QTInfo("J", "_", "_", "0");
       qtTable.addQTInfo(qtqiangzhi);
       quad = QTInfo.innerIdSeqen;	 //\u8bb0\u5f55\u5b83\u7684\u56db\u5143\u5f0f\u5e8f\u53f7
-      System.out.println(quad + "---");
+      //      System.out.println(quad + "---");
     }
     //E\u7684\u5047\u51fa\u53e3
     {
@@ -440,6 +442,7 @@ ConditionValue Condition() : //\u6761\u4ef6
   Token r;
   String first;
   String middle;
+  ConditionValue cv = new ConditionValue();
 }
 {/*@bgen(jjtree) Condition */
   try {
@@ -453,7 +456,7 @@ ConditionValue Condition() : //\u6761\u4ef6
   }
 /*@egen*/
   {
-    QTInfo qt = new QTInfo("J" + r.image, first, middle, "");
+    QTInfo qt = new QTInfo("J" + r.image, first, middle, "");	//\u7b49\u5f85\u56de\u586b
     QTInfo qtFalse = new QTInfo("J", "_", "_", "");
     qtTable.addQTInfo(qt);
     qtTable.addQTInfo(qtFalse);
@@ -543,11 +546,31 @@ void LoopStatement() :
   SimpleNode jjtn000 = new SimpleNode(JJTLOOPSTATEMENT);
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+/*@egen*/
+  int quad;
+  ConditionValue cv = new ConditionValue();
+}
 {/*@bgen(jjtree) LoopStatement */
   try {
 /*@egen*/
-  < WHILE > Condition() StatementBlock()/*@bgen(jjtree)*/
+  < WHILE >
+  {
+    quad = QTInfo.innerIdSeqen + 1;	 //\u6761\u4ef6\u8bed\u53e5\u56db\u5143\u5f0f\u8d77\u59cb\u5e8f\u53f7
+  }	
+  cv = Condition()
+  {
+    cv.backpatchTrueChain(QTInfo.innerIdSeqen + 1);	 // \u56de\u586bcValue\u771f\u94fe
+  }
+  StatementBlock()/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
+/*@egen*/
+  {
+    qtTable.addQTInfo(new QTInfo("J", "_", "_", quad));
+    cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
+  }/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -667,7 +690,8 @@ String AdditiveExpression() :
   {
     newTemp = first;
   }
-  (LOOKAHEAD(1) 
+  (
+    LOOKAHEAD(1)
     (
       op = "+"
     | op = "-"
@@ -728,7 +752,8 @@ String MultiplicativeExpression() :
   {
     newTemp = first;
   }
-  (LOOKAHEAD(1) 
+  (
+    LOOKAHEAD(1)
     (
       op = "*"
     | op = "/"

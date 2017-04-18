@@ -14,7 +14,8 @@ public class Parser
 {
   public QTTable qtTable = new QTTable();
 
-  public ConditionValue cv = new ConditionValue();
+  //public ConditionValue cv = new ConditionValue();
+  //不能是全局
 }
 
 PARSER_END(Parser)
@@ -189,6 +190,7 @@ void ConditionalStatement() :
   int quad = 0;
   //QTInfo qt=null;
   Token t = null;
+  ConditionValue cv = new ConditionValue();
 }
 {
   < IF > 
@@ -208,7 +210,7 @@ void ConditionalStatement() :
       QTInfo qtqiangzhi = new QTInfo("J", "_", "_", "0");
       qtTable.addQTInfo(qtqiangzhi);
       quad = QTInfo.innerIdSeqen;	 //记录它的四元式序号
-      System.out.println(quad + "---");
+      //      System.out.println(quad + "---");
     }
     //E的假出口
     {
@@ -235,13 +237,14 @@ ConditionValue Condition() : //条件
   Token r;
   String first;
   String middle;
+  ConditionValue cv = new ConditionValue();
 }
 {
   < LEFTPARENTHESES > 
   first = Expression() r = RelationSymbol() middle = Expression() 
   < RIGHTPARENTHESES >
   {
-    QTInfo qt = new QTInfo("J" + r.image, first, middle, "");
+    QTInfo qt = new QTInfo("J" + r.image, first, middle, "");	//等待回填
     QTInfo qtFalse = new QTInfo("J", "_", "_", "");
     qtTable.addQTInfo(qt);
     qtTable.addQTInfo(qtFalse);
@@ -278,9 +281,24 @@ void Operator() :	 //运算符
 }
 
 void LoopStatement() :
-{}
 {
-  < WHILE > Condition() StatementBlock()
+  int quad;
+  ConditionValue cv = new ConditionValue();
+}
+{
+  < WHILE >
+  {
+    quad = QTInfo.innerIdSeqen + 1;	 //条件语句四元式起始序号
+  }	
+  cv = Condition()
+  {
+    cv.backpatchTrueChain(QTInfo.innerIdSeqen + 1);	 // 回填cValue真链
+  }
+  StatementBlock()
+  {
+    qtTable.addQTInfo(new QTInfo("J", "_", "_", quad));
+    cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
+  }
 }
 
 void VariableDeclare() : //变量声明语句
@@ -317,7 +335,8 @@ String AdditiveExpression() :
   {
     newTemp = first;
   }
-  (LOOKAHEAD(1) 
+  (
+    LOOKAHEAD(1)
     (
       op = "+"
     | op = "-"
@@ -347,7 +366,8 @@ String MultiplicativeExpression() :
   {
     newTemp = first;
   }
-  (LOOKAHEAD(1) 
+  (
+    LOOKAHEAD(1)
     (
       op = "*"
     | op = "/"
