@@ -1,1 +1,1 @@
-[my website!](http://wwww.nwafulive.cn)
+[my website!](http://www.nwafulive.cn)
