@@ -1,9 +1,9 @@
 int main(){
 int a,b;
 a=1+2*a;
-if(a>b)
+if(a>b+c)
 {
-a=a*2;
+a=b-c;
 }
 else
 {

@@ -186,44 +186,47 @@ String AssignmentStatement() : //赋值语句
 
 void ConditionalStatement() :
 {
-  //int quad;
+  int quad = 0;
   //QTInfo qt=null;
   Token t = null;
 }
 {
-  < IF >
+  < IF > 
   cv = Condition()
-  
-	//确定E的真出口
+  //确定E的真出口
   {
     //System.out.println("啊啊啊啊"+QTInfo.innerIdSeqen);
-    cv.backpatchTrueChain(QTInfo.innerIdSeqen+1);
+    cv.backpatchTrueChain(QTInfo.innerIdSeqen + 1);
     //System.out.println("啊啊啊啊"+QTInfo.innerIdSeqen);  
   }
   StatementBlock()
-  
   (
     LOOKAHEAD(1)
     t = < ELSE >
-	//若遇到else，先生成一个无条件转移四元式("J","_","_","0")，该四元式的result字段在翻译完S2也不一定能确定下来,需要等待回填
-	{
-    QTInfo qt=new QTInfo("J","_","_","0");
-    qtTable.addQTInfo(qt);
-  	}
-  	
-	//E的假出口
+    //若遇到else，先生成一个无条件转移四元式("J","_","_","0")，该四元式的result字段在翻译完S2也不一定能确定下来,需要等待回填
     {
-      cv.backpatchFalseChain(QTInfo.innerIdSeqen+1);
+      QTInfo qtqiangzhi = new QTInfo("J", "_", "_", "0");
+      qtTable.addQTInfo(qtqiangzhi);
+      quad = QTInfo.innerIdSeqen;	 //记录它的四元式序号
+      System.out.println(quad + "---");
+    }
+    //E的假出口
+    {
+      cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
     }
     StatementBlock()
   )?
   {
     if (t == null)
     {
-      cv.backpatchFalseChain(QTInfo.innerIdSeqen+1);
+      cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
+    }
+    else
+    {
+      QTInfo qt = qtTable.get(quad - 1); //取回强制跳转的四元式；ArrayList<QTInfo> QTListshi是从0开始的所以要减一
+      qt.setResult(QTInfo.innerIdSeqen + 1); //设置它的result字段
     }
   }
- 
 }
 
 ConditionValue Condition() : //条件
@@ -314,7 +317,7 @@ String AdditiveExpression() :
   {
     newTemp = first;
   }
-  (
+  (LOOKAHEAD(1) 
     (
       op = "+"
     | op = "-"
@@ -344,7 +347,7 @@ String MultiplicativeExpression() :
   {
     newTemp = first;
   }
-  (
+  (LOOKAHEAD(1) 
     (
       op = "*"
     | op = "/"

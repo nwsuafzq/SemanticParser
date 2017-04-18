@@ -288,23 +288,25 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
  /*@bgen(jjtree) ConditionalStatement */
   SimpleNode jjtn000 = new SimpleNode(JJTCONDITIONALSTATEMENT);
   boolean jjtc000 = true;
-  jjtree.openNodeScope(jjtn000);//int quad;
+  jjtree.openNodeScope(jjtn000);int quad = 0;
   //QTInfo qt=null;
   Token t = null;
     try {
       jj_consume_token(IF);
       cv = Condition();
     //System.out.println("啊啊啊啊"+QTInfo.innerIdSeqen);
-    cv.backpatchTrueChain(QTInfo.innerIdSeqen+1);
+    cv.backpatchTrueChain(QTInfo.innerIdSeqen + 1);
     //System.out.println("啊啊啊啊"+QTInfo.innerIdSeqen);  
 
       StatementBlock();
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
       case ELSE:
         t = jj_consume_token(ELSE);
-    QTInfo qt=new QTInfo("J","_","_","0");
-    qtTable.addQTInfo(qt);
-      cv.backpatchFalseChain(QTInfo.innerIdSeqen+1);
+      QTInfo qtqiangzhi = new QTInfo("J", "_", "_", "0");
+      qtTable.addQTInfo(qtqiangzhi);
+      quad = QTInfo.innerIdSeqen;        //记录它的四元式序号
+      System.out.println(quad + "---");
+      cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
         StatementBlock();
         break;
       default:
@@ -315,7 +317,12 @@ public class Parser/*@bgen(jjtree)*/implements ParserTreeConstants, ParserConsta
     jjtc000 = false;
     if (t == null)
     {
-      cv.backpatchFalseChain(QTInfo.innerIdSeqen+1);
+      cv.backpatchFalseChain(QTInfo.innerIdSeqen + 1);
+    }
+    else
+    {
+      QTInfo qt = qtTable.get(quad - 1); //取回强制跳转的四元式；ArrayList<QTInfo> QTListshi是从0开始的所以要减一
+      qt.setResult(QTInfo.innerIdSeqen + 1); //设置它的result字段
     }
     } catch (Throwable jjte000) {
     if (jjtc000) {
