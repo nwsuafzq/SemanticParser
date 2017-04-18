@@ -1,0 +1,10 @@
+int main(){
+int a,b;
+a=1+2*a;
+if(a>b+c)
+{
+a=b-c;
+}
+
+
+}
